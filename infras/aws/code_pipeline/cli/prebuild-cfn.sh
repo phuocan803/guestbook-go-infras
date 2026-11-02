@@ -10,7 +10,7 @@ BRANCH_NAME="master"
 RESOURCE_PERMISSIONS='{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"PermissionsForCloudFormation\",\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}'
 CODE_PIPELINE_NAME="Pipeline1"
 CONNECTION_ARN="arn:aws:codeconnections:us-east-1:381492301125:connection/f8a29f05-dbad-4263-b90c-7ed8f00d1115"
-FULL_REPOSITORY_ID="quocanuit/iac-devops"
+FULL_REPOSITORY_ID="phuocan803/guestbook-go-infras"
 RETENTION_POLICY="Delete"
 PARAMETER_OVERRIDES="-"
 

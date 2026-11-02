@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: This template creates Nested stack
+Description: This template creates Nested stack including VPC, NAT, Route Tables, Security Groups, and EKS Cluster
 
 Parameters:
   AllowedSSHIP:
@@ -7,20 +7,17 @@ Parameters:
     Type: String
     Default: 0.0.0.0/0
 
-  KeyName:
-    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
-    Type: AWS::EC2::KeyPair::KeyName
-    Default: keypair1
-
   InstanceType:
-    Description: EC2 instance type
+    Description: EC2 instance type for EKS worker nodes
     Type: String
-    Default: t2.medium
+    Default: t3.medium
     AllowedValues:
+      - t3.small
+      - t3.medium
+      - t3.large
       - t2.micro
       - t2.small
       - t2.medium
-      - t2.large
 
   TemplateBucketName:
     Description: Name of the S3 bucket containing nested stack templates
@@ -76,16 +73,26 @@ Resources:
         AllowedSSHIP: !Ref AllowedSSHIP
         EnvironmentName: !Ref EnvironmentName
 
-  EC2Stack:
+  EKSStack:
     Type: AWS::CloudFormation::Stack
     DependsOn:
       - VPCStack
       - RouteTablesStack
-      - SecurityGroupsStack
+      - NATStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.amazonaws.com/${TemplateVersion}ec2-cfn.yaml
-      TimeoutInMinutes: 10
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.amazonaws.com/${TemplateVersion}eks-cfn.yaml
+      TimeoutInMinutes: 25
       Parameters:
-        KeyName: !Ref KeyName
-        InstanceType: !Ref InstanceType
         EnvironmentName: !Ref EnvironmentName
+        ClusterName: guestbook-cluster
+        KubernetesVersion: "1.30"
+        NodeInstanceType: !Ref InstanceType
+
+Outputs:
+  EKSClusterName:
+    Description: EKS Cluster Name
+    Value: !GetAtt EKSStack.Outputs.ClusterName
+
+  EKSClusterEndpoint:
+    Description: EKS Cluster API Endpoint
+    Value: !GetAtt EKSStack.Outputs.ClusterEndpoint

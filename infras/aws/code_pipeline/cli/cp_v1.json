@@ -21,7 +21,7 @@
                     "configuration": {
                         "BranchName": "master",
                         "ConnectionArn": "arn:aws:codeconnections:us-east-1:381492301125:connection/f8a29f05-dbad-4263-b90c-7ed8f00d1115",
-                        "FullRepositoryId": "quocanuit/iac-devops"
+                        "FullRepositoryId": "phuocan803/guestbook-go-infras"
                     },
                     "outputArtifacts": [
                         {

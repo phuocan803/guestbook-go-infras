@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This template creates Amazon EKS Cluster and Managed Node Group
+
+Parameters:
+  EnvironmentName:
+    Description: Environment name - used to make resource names unique
+    Type: String
+    Default: prod
+
+  ClusterName:
+    Description: Name of the EKS Cluster
+    Type: String
+    Default: guestbook-cluster
+
+  KubernetesVersion:
+    Description: Kubernetes version for EKS
+    Type: String
+    Default: "1.30"
+
+  NodeInstanceType:
+    Description: EC2 instance type for worker nodes
+    Type: String
+    Default: t3.medium
+    AllowedValues:
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t2.medium
+
+  NodeMinSize:
+    Description: Minimum number of worker nodes
+    Type: Number
+    Default: 1
+
+  NodeMaxSize:
+    Description: Maximum number of worker nodes
+    Type: Number
+    Default: 3
+
+  NodeDesiredSize:
+    Description: Desired number of worker nodes
+    Type: Number
+    Default: 2
+
+Resources:
+  # 1. IAM Role cho EKS Cluster Control Plane
+  EKSClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${EnvironmentName}-${ClusterName}-cluster-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+
+  # 2. Cụm EKS Cluster
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Sub ${EnvironmentName}-${ClusterName}
+      Version: !Ref KubernetesVersion
+      RoleArn: !GetAtt EKSClusterRole.Arn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub ${EnvironmentName}-DefaultSecurityGroupId
+        SubnetIds:
+          - Fn::ImportValue: !Sub ${EnvironmentName}-PublicSubnetId
+          - Fn::ImportValue: !Sub ${EnvironmentName}-PrivateSubnetId
+        EndpointPublicAccess: true
+        EndpointPrivateAccess: true
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # 3. IAM Role cho Worker Node Group
+  EKSNodeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${EnvironmentName}-${ClusterName}-node-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  # 4. EKS Managed Node Group
+  EKSNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    DependsOn: EKSCluster
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: !Sub ${EnvironmentName}-managed-nodes
+      NodeRole: !GetAtt EKSNodeRole.Arn
+      AmiType: AL2023_x86_64_STANDARD
+      CapacityType: ON_DEMAND
+      InstanceTypes:
+        - !Ref NodeInstanceType
+      ScalingConfig:
+        MinSize: !Ref NodeMinSize
+        MaxSize: !Ref NodeMaxSize
+        DesiredSize: !Ref NodeDesiredSize
+      Subnets:
+        - Fn::ImportValue: !Sub ${EnvironmentName}-PublicSubnetId
+        - Fn::ImportValue: !Sub ${EnvironmentName}-PrivateSubnetId
+      Tags:
+        Environment: !Ref EnvironmentName
+
+Outputs:
+  ClusterName:
+    Description: Name of the EKS Cluster
+    Value: !Ref EKSCluster
+    Export:
+      Name: !Sub ${EnvironmentName}-EKSClusterName
+
+  ClusterArn:
+    Description: The ARN of the EKS Cluster
+    Value: !GetAtt EKSCluster.Arn
+    Export:
+      Name: !Sub ${EnvironmentName}-EKSClusterArn
+
+  ClusterEndpoint:
+    Description: The endpoint for your EKS Cluster API server
+    Value: !GetAtt EKSCluster.Endpoint
+    Export:
+      Name: !Sub ${EnvironmentName}-EKSClusterEndpoint
+
