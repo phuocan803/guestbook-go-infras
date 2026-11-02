@@ -19,18 +19,15 @@
 #### NAT Gateway: 
 - Enable resources in the Private Subnet to connect to the Internet while maintaining security.
 
-#### EC2 Instances: 
-- Deploy instances in both Public and Private Subnets:
-  - The Public instance must be accessible from the Internet.
-  - The Private instance must only be accessible from the Public instance via SSH.
+#### Amazon EKS Cluster & Worker Nodes: 
+- Deploy Amazon EKS Cluster and Managed Node Group in Private Subnets.
+- AWS Load Balancer and NAT Gateway deployed in Public Subnets.
 
 #### Security Groups:
-- **Public EC2 Security Group**: Allow SSH (port 22) connections only from a specific IP.
-- **Private EC2 Security Group**: Allow connections from the Public EC2 instance on necessary ports.
+- **Cluster & Node Security Groups**: Control traffic between Control Plane, Worker Nodes, and AWS Load Balancer.
 
 ## Architecture:
 
 ![architecture](./docs/assets/architecture.png)
 
 - Guideline: [guideline.md](./guideline.md)
-- Demo: https://www.youtube.com/watch?v=aozEAFxrnJs&t=168s
